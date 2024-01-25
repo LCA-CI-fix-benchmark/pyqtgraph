@@ -1,16 +1,10 @@
 name: main
 
-on:
-  push:
-    branches-ignore: "dependabot/**"
-  pull_request:
-    paths-ignore:
-      - '**.md'
-
+on: push
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
 
-concurrency: 
+concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
@@ -23,26 +17,26 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         qt-lib: [pyqt, pyside]
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ['3.9', '3.10', '3.11']
         include:
-          - python-version: "3.9"
-            qt-lib: "pyqt"
-            qt-version: "PyQt5~=5.15.0"
-          - python-version: "3.9"
-            qt-lib: "pyside"
-            qt-version: "PySide2~=5.15.0"
-          - python-version: "3.10"
-            qt-lib: "pyqt"
-            qt-version: "PyQt6~=6.2.0 PyQt6-Qt6~=6.2.0"
-          - python-version: "3.10"
-            qt-lib: "pyside"
-            qt-version: "PySide6~=6.2.0"
-          - python-version: "3.11"
-            qt-lib: "pyqt"
-            qt-version: "PyQt6"
-          - python-version: "3.11"
-            qt-lib: "pyside"
-            qt-version: "PySide6-Essentials"
+        - python-version: '3.9'
+          qt-lib: pyqt
+          qt-version: PyQt5~=5.15.0
+        - python-version: '3.9'
+          qt-lib: pyside
+          qt-version: PySide2~=5.15.0
+        - python-version: '3.10'
+          qt-lib: pyqt
+          qt-version: PyQt6~=6.2.0 PyQt6-Qt6~=6.2.0
+        - python-version: '3.10'
+          qt-lib: pyside
+          qt-version: PySide6~=6.2.0
+        - python-version: '3.11'
+          qt-lib: pyqt
+          qt-version: PyQt6
+        - python-version: '3.11'
+          qt-lib: pyside
+          qt-version: PySide6-Essentials
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -64,7 +58,7 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    - name: "Install Windows-Mesa OpenGL DLL"
+    - name: Install Windows-Mesa OpenGL DLL
       if: runner.os == 'Windows'
       run: |
         curl -LJO https://github.com/pal1000/mesa-dist-win/releases/download/19.2.7/mesa3d-19.2.7-release-msvc.7z
@@ -84,7 +78,7 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install -r .github/workflows/etc/requirements.txt ${{ matrix.qt-version }} .
-    - name: "Install Linux VirtualDisplay"
+    - name: Install Linux VirtualDisplay
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update -y
@@ -101,7 +95,7 @@ jobs:
           libxcb-xinerama0 \
           libopengl0 \
           libxcb-cursor0
-    - name: 'Debug Info'
+    - name: Debug Info
       run: |
         echo python location: `which python`
         echo python version: `python --version`
@@ -113,12 +107,12 @@ jobs:
       shell: bash
       env:
         QT_DEBUG_PLUGINS: 1
-    - name: 'XVFB Display Info'
+    - name: XVFB Display Info
       run: |
         xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.glinfo
         xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.get_resolution
       if: runner.os == 'Linux'
-    - name: 'Display Info'
+    - name: Display Info
       run: |
         python -m pyqtgraph.util.glinfo
         python -m pyqtgraph.util.get_resolution
@@ -132,7 +126,8 @@ jobs:
     - name: Upload Screenshots
       uses: actions/upload-artifact@v3
       with:
-        name: Screenshots (Python ${{ matrix.python-version }} - Qt-Bindings ${{ matrix.qt-lib }} - OS ${{ matrix.os }})
+        name: Screenshots (Python ${{ matrix.python-version }} - Qt-Bindings ${{ matrix.qt-lib
+          }} - OS ${{ matrix.os }})
         path: $SCREENSHOT_DIR
         if-no-files-found: ignore
     env:
@@ -150,102 +145,102 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         qt-lib: [pyqt, pyside]
         include:
-          - qt-lib: pyqt
-            environment-file: .github/workflows/etc/environment-pyqt.yml
-          - qt-lib: pyside
-            environment-file: .github/workflows/etc/environment-pyside.yml
+        - qt-lib: pyqt
+          environment-file: .github/workflows/etc/environment-pyqt.yml
+        - qt-lib: pyside
+          environment-file: .github/workflows/etc/environment-pyside.yml
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          environment-file: ${{ matrix.environment-file }}
-          auto-update-conda: false
-          python-version: "3.10"
-          use-mamba: true
-      - name: "Install Test Framework"
-        run: pip install pytest pytest-xdist
-      - name: "Install Windows-Mesa OpenGL DLL"
-        if: runner.os == 'Windows'
-        run: |
-          curl -LJO https://github.com/pal1000/mesa-dist-win/releases/download/19.2.7/mesa3d-19.2.7-release-msvc.7z
-          7z x mesa3d-19.2.7-release-msvc.7z
-          cd x64
-          xcopy opengl32.dll C:\windows\system32\mesadrv.dll*
-          xcopy opengl32.dll C:\windows\syswow64\mesadrv.dll*
-          REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v DLL /t REG_SZ /d "mesadrv.dll" /f
-          REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v DriverVersion /t REG_DWORD /d 1 /f
-          REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v Flags /t REG_DWORD /d 1 /f
-          REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v Version /t REG_DWORD /d 2 /f
-          REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v DLL /t REG_SZ /d "mesadrv.dll" /f
-          REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v DriverVersion /t REG_DWORD /d 1 /f
-          REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v Flags /t REG_DWORD /d 1 /f 
-          REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v Version /t REG_DWORD /d 2 /f 
-        shell: cmd
-      - name: "Install Linux VirtualDisplay"
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            libxkbcommon-x11-0 \
-            x11-utils \
-            libyaml-dev \
-            libegl1-mesa \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-randr0 \
-            libxcb-render-util0 \
-            libxcb-xinerama0 \
-            libopengl0 \
-            libxcb-cursor0
-          pip install pytest-xvfb
-      - name: 'Debug Info'
-        run: |
-          echo python location: `which python`
-          echo python version: `python --version`
-          echo pytest location: `which pytest`
-          echo installed packages
-          conda list
-          pip list
-          echo pyqtgraph system info
-          python -c "import pyqtgraph as pg; pg.systemInfo()"
-        env:
-          QT_DEBUG_PLUGINS: 1
-      - name: 'XVFB Display Info'
-        run: |
-          xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.glinfo
-          xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.get_resolution
-        if: runner.os == 'Linux'
-      - name: 'Display Info'
-        run: |
-          python -m pyqtgraph.util.glinfo
-          python -m pyqtgraph.util.get_resolution
-        if: runner.os != 'Linux'
-      - name: Run Tests
-        run: |
-          mkdir $SCREENSHOT_DIR
-          pytest tests -v
-          pytest pyqtgraph/examples -v -n 2
-        env:
-          SCREENSHOT_DIR: ./screenshots
+    - name: Checkout
+      uses: actions/checkout@v4
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniforge-version: latest
+        miniforge-variant: Mambaforge
+        environment-file: ${{ matrix.environment-file }}
+        auto-update-conda: false
+        python-version: '3.10'
+        use-mamba: true
+    - name: Install Test Framework
+      run: pip install pytest pytest-xdist
+    - name: Install Windows-Mesa OpenGL DLL
+      if: runner.os == 'Windows'
+      run: |
+        curl -LJO https://github.com/pal1000/mesa-dist-win/releases/download/19.2.7/mesa3d-19.2.7-release-msvc.7z
+        7z x mesa3d-19.2.7-release-msvc.7z
+        cd x64
+        xcopy opengl32.dll C:\windows\system32\mesadrv.dll*
+        xcopy opengl32.dll C:\windows\syswow64\mesadrv.dll*
+        REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v DLL /t REG_SZ /d "mesadrv.dll" /f
+        REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v DriverVersion /t REG_DWORD /d 1 /f
+        REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v Flags /t REG_DWORD /d 1 /f
+        REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v Version /t REG_DWORD /d 2 /f
+        REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v DLL /t REG_SZ /d "mesadrv.dll" /f
+        REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v DriverVersion /t REG_DWORD /d 1 /f
+        REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v Flags /t REG_DWORD /d 1 /f 
+        REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\MSOGL" /v Version /t REG_DWORD /d 2 /f 
+      shell: cmd
+    - name: Install Linux VirtualDisplay
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y --no-install-recommends \
+          libxkbcommon-x11-0 \
+          x11-utils \
+          libyaml-dev \
+          libegl1-mesa \
+          libxcb-icccm4 \
+          libxcb-image0 \
+          libxcb-keysyms1 \
+          libxcb-randr0 \
+          libxcb-render-util0 \
+          libxcb-xinerama0 \
+          libopengl0 \
+          libxcb-cursor0
+        pip install pytest-xvfb
+    - name: Debug Info
+      run: |
+        echo python location: `which python`
+        echo python version: `python --version`
+        echo pytest location: `which pytest`
+        echo installed packages
+        conda list
+        pip list
+        echo pyqtgraph system info
+        python -c "import pyqtgraph as pg; pg.systemInfo()"
+      env:
+        QT_DEBUG_PLUGINS: 1
+    - name: XVFB Display Info
+      run: |
+        xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.glinfo
+        xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.get_resolution
+      if: runner.os == 'Linux'
+    - name: Display Info
+      run: |
+        python -m pyqtgraph.util.glinfo
+        python -m pyqtgraph.util.get_resolution
+      if: runner.os != 'Linux'
+    - name: Run Tests
+      run: |
+        mkdir $SCREENSHOT_DIR
+        pytest tests -v
+        pytest pyqtgraph/examples -v -n 2
+      env:
+        SCREENSHOT_DIR: ./screenshots
 
   build-wheel:
     name: build wheel
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Build Wheel
-        run: |
-          python -m pip install setuptools wheel
-          python setup.py bdist_wheel
-  
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: Build Wheel
+      run: |
+        python -m pip install setuptools wheel
+        python setup.py bdist_wheel
+
   analyze:
     name: analyze
     runs-on: ubuntu-latest
@@ -264,12 +259,12 @@ jobs:
       run: |
         python -m pip install PyQt5 numpy scipy
         echo "CODEQL_PYTHON=$(which python)" >> $GITHUB_ENV
-    
+
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
-        languages: 'python'
+        languages: python
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
